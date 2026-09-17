@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Dev/local-emulator-only configuration.
+
+    10.0.2.2 is the special alias the Android emulator uses to reach the host
+    machine's loopback interface, where the local FastAPI backend runs during
+    development (see RetrofitClient's BASE_URL). Cleartext HTTP is allowed only
+    for this one address — it is NOT enabled globally, and this file must not be
+    used to reach any real/production/public host over plain HTTP.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
