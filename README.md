@@ -7,18 +7,23 @@ the Anthropic Python SDK on the server.
 
 ## Screenshots
 
-**1. Home / Connected** — backend health status and quick actions
+**1. Native Wear OS Input** — the RemoteInput picker showing voice and keyboard options
 
-![Home / Connected](docs/screenshots/home-connected.png)
+![Native Wear OS Input](docs/screenshots/remote-input.png)
 
-**2. Voice → Cloud AI** — a voice-entered general question routed to Claude.
-The latency shown is a single observed request, not a benchmark.
+**2. On-device Time** — "What time is it now", routed locally, works without the backend
+
+![On-device Time](docs/screenshots/on-device-time.png)
+
+**3. On-device Date** — "What date is it today", routed locally, works without the backend
+
+![On-device Date](docs/screenshots/on-device-date.png)
+
+**4. Voice → Cloud AI** — a general question routed to Claude through FastAPI.
+The Cloud AI response is shown with latency; this is a single observed
+request, not a benchmark.
 
 ![Voice to Cloud AI](docs/screenshots/cloud-voice-response.png)
-
-**3. Offline → On-device** — the Time quick action answering locally with the backend offline
-
-![Offline to on-device](docs/screenshots/local-offline-time.png)
 
 ## Demo Flow
 
