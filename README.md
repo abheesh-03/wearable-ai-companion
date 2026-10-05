@@ -1,9 +1,10 @@
 # Wearable AI Companion
 
-A Wear OS AI assistant that keeps simple requests on-device and routes general
-questions to Claude through a FastAPI backend. Built as a full-stack, offline-aware
-mobile/wearable + backend project: Kotlin/Jetpack Compose on the watch, FastAPI +
-the Anthropic Python SDK on the server.
+A Wear OS AI assistant that keeps deterministic device requests on-device and
+routes general questions to Claude through a FastAPI backend. Local intents include
+time, date, help, and battery percentage; open-ended questions use cloud AI.
+Built as a full-stack, offline-aware mobile/wearable + backend project:
+Kotlin/Jetpack Compose on the watch, FastAPI + the Anthropic Python SDK on the server.
 
 ## Screenshots
 
@@ -36,8 +37,14 @@ Wear OS input (RemoteInput)
   -> AskAiViewModel
   -> IntentRouter
   -> LocalIntentHandler
+  -> Clock / BatteryStatusProvider
   -> on-device response
 ```
+
+For battery requests, the production provider reads the actual watch percentage
+through Android `BatteryManager`. This path was manually verified with the
+backend offline: asking **"What's my battery level?"** still returned an
+**On-device** response with the emulator's current battery percentage.
 
 **CLOUD** — general questions, requires the backend:
 
@@ -58,7 +65,8 @@ flowchart TD
     A[Wear OS RemoteInput] --> B[AskAiViewModel]
     B --> C{IntentRouter}
     C -->|LOCAL| D[LocalIntentHandler]
-    D --> E[On-device response]
+    D --> E[Clock / BatteryStatusProvider]
+    E --> L[On-device response]
     C -->|CLOUD| F[CloudAiRepository]
     F --> G[Retrofit / OkHttp]
     G --> H[FastAPI backend]
@@ -73,7 +81,8 @@ flowchart TD
 
 - Native Wear OS text entry: system keyboard and voice input via `RemoteInput`
 - Local-vs-cloud intent routing, decided per request before any network call
-- "Time" and "Date" quick actions answer entirely on-device, no backend required
+- Time, date, help, and battery percentage requests can be answered entirely on-device, no backend required
+- Battery percentage is read from Android `BatteryManager` through a testable `BatteryStatusProvider` abstraction
 - "Explain" quick action and free-text questions route to Claude through the backend
 - Home screen connectivity status: Checking / Connected / Offline, backed by a real `GET /health` check
 - Short, watch-formatted Claude responses (plain text, no markdown, 1-2 sentences by default)
@@ -85,14 +94,15 @@ flowchart TD
 
 Routing simple, deterministic requests on-device instead of always calling the cloud:
 
-- Lower latency — "what time is it" doesn't need a round trip
-- No unnecessary network dependency for things the watch already knows
-- Lower API cost — trivial requests never touch a paid model
+- Lower latency — "what time is it" or "what's my battery level" does not need a cloud round trip
+- No unnecessary network dependency for facts the watch already knows
+- Lower API cost — trivial deterministic requests never touch a paid model
 - More resilient — local intents keep working even if the backend is down
 - The router is intentionally conservative: it matches a fixed set of exact,
-  normalized phrases rather than doing substring matching, so a question like
-  *"What is time complexity?"* correctly falls through to Claude instead of
-  being misrouted just because it contains the word "time"
+  normalized phrases rather than doing substring matching, so questions like
+  *"What is time complexity?"* or *"Why is my battery draining so fast?"*
+  correctly fall through to Claude instead of being misrouted because they
+  contain the words "time" or "battery"
 
 ## Tech Stack
 
@@ -121,10 +131,14 @@ Routing simple, deterministic requests on-device instead of always calling the c
 
 ```
 app/src/main/java/.../
-  data/                # Retrofit API service, models, CloudAiRepository, HealthChecker
-  domain/routing/       # IntentRoute, IntentRouter, LocalIntentClassifier, LocalIntentHandler
+  data/
+    device/             # AndroidBatteryStatusProvider (BatteryManager-backed)
+    remote/             # Retrofit API service + models
+    ...                 # CloudAiRepository, HealthChecker
+  domain/routing/       # IntentRoute, IntentRouter, LocalIntentClassifier, LocalIntentHandler,
+                        # BatteryStatusProvider
   presentation/
-    ask/                # Ask AI screen, ViewModel, UI state
+    ask/                # Ask AI screen, ViewModel, UI state, AskAiViewModelFactory
     home/                # Home screen, ViewModel, quick actions, connectivity state
     navigation/          # Wear SwipeDismissableNavHost + route definitions
     components/          # Shared Wear Compose UI pieces
@@ -236,7 +250,7 @@ resolves it in most cases.
 ./gradlew testDebugUnitTest
 ```
 
-61 JVM unit tests currently pass.
+67 JVM unit tests currently pass.
 
 **Backend:**
 
@@ -250,12 +264,15 @@ pytest
 dependency overrides and never call the real Anthropic API.
 
 Coverage includes: local-vs-cloud routing decisions, false-positive routing
-traps (e.g. "time" appearing in an unrelated question), deterministic
-time/date responses via injected `Clock`, cloud repository error mapping
-(timeout / connection / HTTP / malformed response), duplicate-send
-protection, the health checker, Home connectivity states, quick-action
-behavior, provider failures mapping to HTTP 503, and provider tests that
-never touch a real API key or network.
+traps (for example "time" or "battery" appearing in unrelated/explanatory
+questions), deterministic time/date responses via injected `Clock`, battery
+responses via an injected `BatteryStatusProvider`, the unavailable-battery
+fallback, and a ViewModel test proving a battery request is answered locally
+without invoking `CloudAiRepository`. The suite also covers cloud repository
+error mapping (timeout / connection / HTTP / malformed response), duplicate-send
+protection, the health checker, Home connectivity states, quick-action behavior,
+provider failures mapping to HTTP 503, and provider tests that never touch a real
+API key or network.
 
 ## Error Handling / Reliability
 
@@ -304,6 +321,11 @@ never touch a real API key or network.
 - **Conservative, exact-match local router** — trades a bit of recall for
   correctness; a broader substring matcher would misroute genuine questions
   that happen to contain words like "time" or "date"
+- **Battery access behind `BatteryStatusProvider`** — the routing/domain layer
+  does not depend directly on Android framework APIs. Production injects
+  `AndroidBatteryStatusProvider`, which reads
+  `BatteryManager.BATTERY_PROPERTY_CAPACITY`; tests inject deterministic fake
+  providers.
 - **The Anthropic secret never leaves the backend** — the Android app only
   ever talks to the local FastAPI service, never to Anthropic directly
 - **Repository and provider abstractions on both sides** (`CloudAiRepository`,
