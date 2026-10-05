@@ -30,6 +30,30 @@ class LocalIntentHandlerTest {
     }
 
     @Test
+    fun `battery request returns percentage from provider`() {
+        val handler = LocalIntentHandler(
+            clock = fixedClock,
+            batteryStatusProvider = FakeBatteryStatusProvider(73),
+        )
+
+        val response = handler.handle("What's my battery level?")
+
+        assertEquals("Battery is at 73%", response)
+    }
+
+    @Test
+    fun `battery request returns fallback when status is unavailable`() {
+        val handler = LocalIntentHandler(
+            clock = fixedClock,
+            batteryStatusProvider = FakeBatteryStatusProvider(null),
+        )
+
+        val response = handler.handle("Battery percentage")
+
+        assertEquals("Battery status is unavailable.", response)
+    }
+
+    @Test
     fun `help request returns the capability summary`() {
         val response = handler.handle("help")
 
@@ -45,4 +69,10 @@ class LocalIntentHandlerTest {
 
         assertEquals("I couldn't process that on-device.", response)
     }
+    private class FakeBatteryStatusProvider(
+        private val percentage: Int?,
+    ) : BatteryStatusProvider {
+        override fun batteryPercent(): Int? = percentage
+    }
+
 }

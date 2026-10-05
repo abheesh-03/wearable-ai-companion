@@ -3,6 +3,7 @@ package com.sai.wearableaicompanion.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -12,6 +13,7 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.sai.wearableaicompanion.presentation.ask.AskAiScreen
 import com.sai.wearableaicompanion.presentation.ask.AskAiViewModel
+import com.sai.wearableaicompanion.presentation.ask.AskAiViewModelFactory
 import com.sai.wearableaicompanion.presentation.home.HomeScreen
 import com.sai.wearableaicompanion.presentation.home.HomeViewModel
 import com.sai.wearableaicompanion.presentation.home.QuickAction
@@ -53,7 +55,10 @@ fun WearableApp() {
                 },
             ),
         ) { backStackEntry ->
-            val askAiViewModel: AskAiViewModel = viewModel()
+            val context = LocalContext.current
+            val askAiViewModel: AskAiViewModel = viewModel(
+                factory = AskAiViewModelFactory(context),
+            )
             val uiState by askAiViewModel.uiState.collectAsStateWithLifecycle()
 
             // Keyed on the backstack entry's stable id, not Unit: this runs

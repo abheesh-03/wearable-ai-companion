@@ -68,6 +68,30 @@ class DefaultIntentRouterTest {
     }
 
     @Test
+    fun `battery level routes locally`() {
+        assertEquals(
+            IntentRoute.LOCAL,
+            router.route("What's my battery level?")
+        )
+    }
+
+    @Test
+    fun `battery percentage routes locally`() {
+        assertEquals(
+            IntentRoute.LOCAL,
+            router.route("How much battery is left?")
+        )
+    }
+
+    @Test
+    fun `battery explanation still routes to cloud`() {
+        assertEquals(
+            IntentRoute.CLOUD,
+            router.route("Why is my battery draining so fast?")
+        )
+    }
+
+    @Test
     fun `normal ai question routes to cloud`() {
         assertEquals(IntentRoute.CLOUD, router.route("Write me a haiku about the ocean"))
     }

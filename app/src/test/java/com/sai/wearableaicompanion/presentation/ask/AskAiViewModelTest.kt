@@ -2,7 +2,9 @@ package com.sai.wearableaicompanion.presentation.ask
 
 import com.sai.wearableaicompanion.data.CloudAiRepository
 import com.sai.wearableaicompanion.data.CloudAiResult
+import com.sai.wearableaicompanion.domain.routing.BatteryStatusProvider
 import com.sai.wearableaicompanion.domain.routing.IntentRoute
+import com.sai.wearableaicompanion.domain.routing.LocalIntentHandler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -96,6 +98,31 @@ class AskAiViewModelTest {
             state.response,
         )
         assertEquals(0, repository.callCount)
+    }
+
+    @Test
+    fun `battery request is answered locally and never calls cloud`() {
+        val repository = NeverCalledCloudAiRepository()
+
+        val viewModel = AskAiViewModel(
+            localIntentHandler = LocalIntentHandler(
+                batteryStatusProvider = object : BatteryStatusProvider {
+                    override fun batteryPercent(): Int = 64
+                },
+            ),
+            cloudAiRepository = repository,
+        )
+
+        viewModel.onInputChange("What's my battery level?")
+        viewModel.onSend()
+
+        val state = viewModel.uiState.value
+
+        assertEquals(IntentRoute.LOCAL, state.route)
+        assertEquals("Battery is at 64%", state.response)
+        assertEquals(0, repository.callCount)
+        assertFalse(state.isSubmitting)
+        assertNull(state.error)
     }
 
     @Test

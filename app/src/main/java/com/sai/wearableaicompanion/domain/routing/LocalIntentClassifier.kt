@@ -10,6 +10,7 @@ package com.sai.wearableaicompanion.domain.routing
 internal enum class LocalIntent {
     TIME,
     DATE,
+    BATTERY,
     HELP,
 }
 
@@ -34,6 +35,17 @@ internal object LocalIntentClassifier {
         "what day is it today",
     )
 
+    private val batteryPhrases = setOf(
+        "battery level",
+        "battery percentage",
+        "what's my battery level",
+        "what is my battery level",
+        "what's my battery percentage",
+        "what is my battery percentage",
+        "how much battery do i have",
+        "how much battery is left",
+    )
+
     private val helpPhrases = setOf(
         "help",
         "what can you do",
@@ -44,6 +56,7 @@ internal object LocalIntentClassifier {
         return when (normalize(rawInput)) {
             in timePhrases -> LocalIntent.TIME
             in datePhrases -> LocalIntent.DATE
+            in batteryPhrases -> LocalIntent.BATTERY
             in helpPhrases -> LocalIntent.HELP
             else -> null
         }
