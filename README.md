@@ -6,6 +6,8 @@ time, date, help, and battery percentage; open-ended questions use cloud AI.
 Built as a full-stack, offline-aware mobile/wearable + backend project:
 Kotlin/Jetpack Compose on the watch, FastAPI + the Anthropic Python SDK on the server.
 
+Initial development and local testing ran from June through September 2026, with later commits focused mainly on testing, documentation, and small refinements.
+
 ## Screenshots
 
 **1. Native Wear OS Input** — the RemoteInput picker showing voice and keyboard options
